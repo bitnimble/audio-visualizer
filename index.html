@@ -1,0 +1,24 @@
+<html>
+<head>
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+	<script src="visualizer.js"></script>
+	<script type="text/javascript">	
+		window.onload = function() {
+			fileinput.onchange = function() {
+				var files = this.files;
+				var file = URL.createObjectURL(files[0]);
+				player.src = file;
+				player.play();
+				initializeVisualizer($("canvas")[0], $("audio")[0]);			
+				updateSongText(files[0].name);
+			}
+		};
+	</script>
+</head>
+<body style="background-color: #252833">
+	<input id="fileinput" style="color:white;" type="file" accept="audio/*" />
+	<audio id="player"></audio>
+	<canvas style="padding:0; margin:0; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" id="canvas" width="920px" height="45px"></canvas>
+</body>
+</html>
