@@ -12,7 +12,7 @@ let floorLevel = 96;
 let audioContext;
 let audioBuffer;
 let audioAnalyserNode;
-let initialized = false;
+let audioVisualizerInitialized = false;
 let songText = "";
 let textSize;
 let freqLookup = [];
@@ -46,7 +46,7 @@ function setupAudioApi(audioElement) {
 	src.connect(audioAnalyserNode);
 	audioAnalyserNode.connect(audioContext.destination);	
 		
-	initialized = true;
+	audioVisualizerInitialized = true;
 	initFreqLookupTable();
 }
 
@@ -82,7 +82,7 @@ function initFreqLookupTable() {
 function paint() {
 	requestAnimationFrame(paint);
 	
-	if(!initialized)
+	if(!audioVisualizerInitialized)
 		return;
 		
 	canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
