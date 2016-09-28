@@ -11,4 +11,4 @@ Call `updateSongText(text)` to change the text on the control.
 
 See index.html for example usage. Currently only 1 control is supported at a time, but I'll refactor it to fix that when I'm not feeling so lazy.
 
-![](https://my.mixtape.moe/voarfb.png)
+![](https://my.mixtape.moe/hyigns.gif)
