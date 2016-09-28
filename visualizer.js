@@ -1,5 +1,5 @@
 //Note: bins needs to be a power of 2
-let bins = 64;
+let displayBins = 512;
 let backgroundColour = "#262626";
 let barColour = "#F1910C";
 let songFont = "15px 'Open Sans'";
@@ -7,6 +7,8 @@ let songFont = "15px 'Open Sans'";
 //leaving it at 96 since it seems to work well, basically any volume will push
 //it past 96. If your audio stream is quiet though, you'll want to reduce this.
 let floorLevel = 96;
+
+let drawPitch = true;
 
 //Can't touch this
 let audioContext;
@@ -19,6 +21,9 @@ let freqLookup = [];
 let canvasContext;
 let canvasWidth;
 let canvasHeight;
+let multiplier;
+
+let magicConstant = 42; //Meaning of everything. I don't know why this works.
 
 function initializeVisualizer(canvasElement, audioElement) {
 	try {
@@ -41,7 +46,8 @@ function setupAudioApi(audioElement) {
 	
 	audioAnalyserNode = audioContext.createAnalyser();
 	//FFT node takes in 2 samples per bin, and we internally use 2 samples per bin
-	audioAnalyserNode.fftSize = bins * 4;
+	audioAnalyserNode.fftSize = drawPitch ? 8192 : displayBins * 2;
+	multiplier = Math.pow(2, Math.log2(displayBins) / (22050 / magicConstant));
 	
 	src.connect(audioAnalyserNode);
 	audioAnalyserNode.connect(audioContext.destination);	
@@ -61,19 +67,15 @@ function initCanvas(canvasElement) {
 }
 
 function getFreqPoint(start, stop, n, binCount) {
-	return start * Math.pow(stop / start, n / (binCount - 1));
+	return start * Math.exp((Math.log(stop) - Math.log(start)) * (n / binCount));
 }
 
 function initFreqLookupTable() {
-	let lastPoint = 0;
 	let bins = audioAnalyserNode.frequencyBinCount;
-	for(let i = 0; i < bins / 2; i++) {
+	for (let i = 0; i < bins; i++) {
 		//Scale to perceived frequency distribution
-		let newFreq = getFreqPoint(20, 20000, i * 2, bins);
-		let point = Math.floor(bins * newFreq / 20000);
-		while (point <= lastPoint)
-			point++;
-		lastPoint = point;
+		let freqStart = getFreqPoint(1, 22025, i, bins);
+		let point = Math.floor(bins * freqStart / 22025);
 		freqLookup.push(point);
 	}
 }
@@ -94,18 +96,58 @@ function paint() {
 	audioAnalyserNode.getByteFrequencyData(data);
 	canvasContext.fillStyle = barColour;
 	
-	for(let i = 0; i < bins; i++) {
-		let point = freqLookup[i];
-		//Pretty much any volume will push it over [floorLevel] so we set that as the bottom threshold
-		//I suspect I should be doing a logarithmic space for the volume as well
-		let height = Math.max(0, (data[point] - floorLevel));
-		//Scale to the height of the bar
-		//Since we change the base level in the previous operations, 256 should be changed to 160 (i think) if we want it to go all the way to the top
-		height = (height / (256 - floorLevel)) * canvasHeight * 0.8;
-		let width = Math.ceil(canvasWidth / ((bins / 2) - 1));
-		canvasContext.fillRect(i * width, canvasHeight - height, width, height);
-	}
+	if (drawPitch)
+		paintLogBins(bins, data)
+	else
+		paintBins(bins, data);
+	
 	canvasContext.fillStyle = 'white';
 	//Note: the 15's here need to be changed if you change the font size
 	canvasContext.fillText(songText, canvasWidth / 2 - textSize.width / 2, canvasHeight / 2 - 15 / 2 + 15);
+}
+
+//Inclusive lower, exclusive upper except with stop == start
+function averageRegion(data, start, stop) {
+	if (stop <= start)
+		return data[start];
+	
+	let sum = 0;
+	for (let i = start; i < stop; i++) {
+		sum += data[i];
+	}
+	return sum / (stop - start);
+}
+
+function paintBins(bins, data) {
+	let step = bins / displayBins;
+	for (let i = 0; i < displayBins; i++) {
+		let lower = i * step;
+		let upper = (i + 1) * step - 1;
+		let binValue = averageRegion(data, lower, upper);
+		
+		paintSingleBin(binValue, i);
+	}
+}
+
+function paintLogBins(bins, data) {
+	let lastFrequency = magicConstant / multiplier;
+	for(let i = 0; i < displayBins; i++) {
+		let thisFreq = lastFrequency * multiplier;
+		lastFrequency = thisFreq;
+		let binIndex = Math.floor(bins * thisFreq / 22050);
+		let binValue = data[binIndex];
+		
+		paintSingleBin(binValue, i);
+	}
+}
+
+function paintSingleBin(binValue, i) {
+	//Pretty much any volume will push it over [floorLevel] so we set that as the bottom threshold
+	//I suspect I should be doing a logarithmic space for the volume as well
+	let height = Math.max(0, (binValue - floorLevel));
+	//Scale to the height of the bar
+	//Since we change the base level in the previous operations, 256 should be changed to 160 (i think) if we want it to go all the way to the top
+	height = (height / (256 - floorLevel)) * canvasHeight * 0.8;
+	let width = Math.ceil(canvasWidth / (displayBins - 1));
+	canvasContext.fillRect(i * width, canvasHeight - height, width, height);
 }
