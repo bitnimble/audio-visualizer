@@ -13,7 +13,7 @@ let drawPitch = true;
 //Whether to draw the visualisation as a curve instead of discrete bars
 let drawCurved = true;
 //If drawCurved is enabled, this flag fills the area beneath the curve (the same colour as the line)
-let drawFilled = false;
+let drawFilled = true;
 //Whether to draw text the songText on top of the visualisation
 let drawText = false;
 
@@ -88,14 +88,15 @@ function paint() {
 	canvasContext.fillRect(0, 0, canvasWidth, canvasHeight);
 	
 	let bins = audioAnalyserNode.frequencyBinCount;
+	let binLengths = [];
 	let data = new Uint8Array(bins);
 	audioAnalyserNode.getByteFrequencyData(data);
 	canvasContext.fillStyle = barColour;
 	
 	if (drawPitch)
-		updateBinsLog(bins, data);
+		updateBinsLog(bins, binLengths, data);
 	else
-		updateBins(bins, data);
+		updateBins(bins, binLengths, data);
 	
 	if (!drawCurved) {
 		for (let i = 0; i < displayBins; i++) {
@@ -108,34 +109,19 @@ function paint() {
 		let i;
 		let lastX, lastY;
 		let j = 0;
-		for (i = 1; i < displayBins - 2; i++) {
+		let drawStopper = false;
+		for (i = 0; i < displayBins - 2;) {
 			var thisX = i * binWidth;
-			var nextX = (i + 1) * binWidth;
+			var nextX = (i + binLengths[i]) * binWidth; //First subbin of the next bin
 			var x = (thisX + nextX) / 2;
 			
-			var thisHeight = getBinHeight(i);
-			var nextHeight = getBinHeight(i + 1);			
-			var thisY = canvasHeight - thisHeight;
-			var nextY = canvasHeight - nextHeight;
-			//We should really take the middle of the block, but i'll do that later...
-			if (thisY == nextY) {
-				j++;
-				//Smooth out any blockiness by skipping curve rendering to bins of the same height except the first
-				if (j == 1) {
-					lastX = thisX;
-					lastY = thisY;
-				} else {
-					continue;
-				}
-			} else {
-				lastX = thisX;
-				lastY = thisY;
-				j = 0;
-			}
-			
+			var thisY = canvasHeight - getBinHeight(i);
+			var nextY = canvasHeight - getBinHeight(i + binLengths[i]);
 			var y = (thisY + nextY) / 2;
 			
-			canvasContext.quadraticCurveTo(lastX, lastY, x, y);
+			canvasContext.quadraticCurveTo(thisX, thisY, x, y);
+			
+			i += binLengths[i];
 		}
 		canvasContext.quadraticCurveTo(i * binWidth, canvasHeight - getBinHeight(i), (i + 1) * binWidth, canvasHeight - getBinHeight(i + 1));
 		if (drawFilled) {
@@ -166,26 +152,36 @@ function averageRegion(data, start, stop) {
 	return sum / (stop - start);
 }
 
-function updateBins(bins, data) {
+function updateBins(bins, binLengths, data) {
 	let step = bins / displayBins;
 	for (let i = 0; i < displayBins; i++) {
 		let lower = i * step;
 		let upper = (i + 1) * step - 1;
 		let binValue = averageRegion(data, lower, upper);
-		
+		binLengths.push(1);
 		finalBins[i] = binValue;
 	}
 }
 
 //TODO: pull the indexing out into a lookup table
-function updateBinsLog(bins, data) {
+function updateBinsLog(bins, binLengths, data) {
 	let lastFrequency = magicConstant / multiplier;
+	let currentLength = 0;
+	let lastBinIndex = 0;
 	for(let i = 0; i < displayBins; i++) {
 		let thisFreq = lastFrequency * multiplier;
 		lastFrequency = thisFreq;
 		let binIndex = Math.floor(bins * thisFreq / 22050);
 		let binValue = data[binIndex];
+		currentLength++;
 		
+		if (binIndex != lastBinIndex) {
+			for (let j = 0; j < currentLength; j++)
+				binLengths.push(currentLength);
+			currentLength = 0;
+		}
+		
+		lastBinIndex = binIndex;
 		finalBins[i] = binValue;
 	}
 }
