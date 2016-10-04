@@ -13,7 +13,7 @@ let drawPitch = true;
 //Whether to draw the visualisation as a curve instead of discrete bars
 let drawCurved = true;
 //If drawCurved is enabled, this flag fills the area beneath the curve (the same colour as the line)
-let drawFilled = true;
+let drawFilled = false;
 //Whether to draw text the songText on top of the visualisation
 let drawText = false;
 
@@ -107,9 +107,6 @@ function paint() {
 		canvasContext.beginPath();
 		canvasContext.moveTo(0, canvasHeight - getBinHeight(0));
 		let i;
-		let lastX, lastY;
-		let j = 0;
-		let drawStopper = false;
 		for (i = 0; i < displayBins - 2;) {
 			var thisX = i * binWidth;
 			var nextX = (i + binLengths[i]) * binWidth; //First subbin of the next bin
