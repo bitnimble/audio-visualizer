@@ -55,8 +55,8 @@ function setupAudioApi(audioElement) {
 
 	audioAnalyserNode = audioContext.createAnalyser();
 	//FFT node takes in 2 samples per bin, and we internally use 2 samples per bin
-	audioAnalyserNode.fftSize = drawPitch ? 4096 : displayBins * 2;
-	multiplier = Math.pow(2, Math.log2(displayBins) / (22050 / magicConstant));
+	audioAnalyserNode.fftSize = drawPitch ? displayBins * 8 : displayBins * 2;
+	multiplier = Math.pow(22050, 1 / displayBins) * Math.pow(1 / magicConstant, 1 / displayBins);
 	finalBins = [];
 	logLookupTable = [];
 	logBinLengths = [];
