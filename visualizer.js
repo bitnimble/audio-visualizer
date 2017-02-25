@@ -36,9 +36,12 @@ let magicConstant = 42; //Meaning of everything. I don't know why this works.
 
 function initializeVisualizer(canvasElement, audioElement) {
 	try {
-		initCanvas(canvasElement);
-		audioContext = new AudioContext();
-		setupAudioApi(audioElement);
+		let ctxt = window.AudioContext || window.webkitAudioContext;
+		if (ctxt) {
+			initCanvas(canvasElement);
+			audioContext = new ctxt();
+			setupAudioApi(audioElement);
+		}
 	} catch(e) {
 		console.log(e);
 	}
