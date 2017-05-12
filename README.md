@@ -1,5 +1,5 @@
 # audio-visualizer
-A simple canvas visualizer for frequencies from an input audio file or stream, sampled as _perceived frequency_ and not as _absolute frequency_. 
+A simple canvas visualizer for frequencies from an input audio file or stream, scaled logarithmically as _perceived frequency_ and not as _absolute frequency_. 
 
 [Click here for a demo!](https://anonymousthing.github.io/audio-visualizer/)
 
