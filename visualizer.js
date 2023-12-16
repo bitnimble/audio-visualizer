@@ -16,6 +16,8 @@ let drawCurved = true;
 let drawFilled = false;
 //Whether to draw text the songText on top of the visualisation
 let drawText = false;
+//Rainbow gradients more your thing? You can enable this for full rainbow effect (this ignores "barColour")
+let rainbowColours = false;
 
 //Can't touch this
 let audioContext;
@@ -93,6 +95,17 @@ function paint() {
 
 	if(!audioVisualizerInitialized)
 		return;
+	
+	if (rainbowColors) {
+		var gradient = canvasContext.createLinearGradient(10, 0, canvasWidth, canvasHeight);
+		gradient.addColorStop(0, 'red');
+		gradient.addColorStop(1 / 6, 'orange');
+		gradient.addColorStop(2 / 6, 'yellow');
+		gradient.addColorStop(3 / 6, 'green');
+		gradient.addColorStop(4 / 6, 'blue');
+		gradient.addColorStop(5 / 6, 'indigo');
+		gradient.addColorStop(1, 'violet');
+	}
 
 	canvasContext.fillStyle = backgroundColour;
 	canvasContext.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -100,7 +113,9 @@ function paint() {
 	let bins = audioAnalyserNode.frequencyBinCount;
 	let data = new Uint8Array(bins);
 	audioAnalyserNode.getByteFrequencyData(data);
-	canvasContext.fillStyle = barColour;
+	
+	if (rainbowColors) { canvasContext.fillStyle = gradient; } 
+	else { canvasContext.fillStyle = barColour; }
 
 	if (drawPitch)
 		updateBinsLog(logLookupTable, data);
@@ -112,7 +127,8 @@ function paint() {
 			paintSingleBin(i);
 		}
 	} else {
-		canvasContext.fillStyle = barColour;
+		if (rainbowColors) { canvasContext.fillStyle = gradient; } 
+		else { canvasContext.fillStyle = barColour; }
 		canvasContext.beginPath();
 		canvasContext.moveTo(0, canvasHeight - getBinHeight(0));
 		let i;
